@@ -1,58 +1,76 @@
 package storage
 
 import (
+	"context"
+
 	"example.com/m/config"
 	"example.com/m/pkg/logging"
 	postgersDB "example.com/m/pkg/postgres"
+	redisCache "example.com/m/pkg/redis"
+	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
 )
 
 type Storage struct {
-	db *sqlx.DB
-	// cache    *redis.Client
-	// producer *kafka.Producer
+	db    *sqlx.DB
+	cache *redis.Client
+	cfg   *config.Config
+	log   *logging.Logger
 }
 
-func New(cfg *config.Config, logger *logging.Logger) *Storage {
-	logger.Info("Connecting to database")
+func New(cfg *config.Config, log *logging.Logger) *Storage {
+	log.Info("Connecting to database")
 	dsn := cfg.GetDSN()
-	logger.Info(dsn)
+	log.Info(dsn)
 	db, err := postgersDB.New(dsn)
 	if err != nil {
-		logger.Fatalf("Faild to connect to database. error: %v", err)
+		log.Fatalf("Faild to connect to database. error: %v", err)
 	}
 
-	// logger.Info("Connecting to redis client")
-	// redis := redisCache.New(cfg.Redis.RedisHost, cfg.Redis.RedisPort, cfg.Redis.RedisDB)
+	log.Info("Connecting to redis client")
+	redis := redisCache.New(cfg.Redis.RedisHost, cfg.Redis.RedisPort, cfg.Redis.RedisDB)
 
-	// logger.Info("Connecting to kafka")
-	// producer, err := kafka.NewProducer(cfg.Kafka.Brokers)
-	// if err != nil {
-	// 	logger.Errorf("Faild to connect to kafka. error: %v", err)
-	// }
-
-	return &Storage{db}
+	return &Storage{db, redis, cfg, log}
 }
 
-func (s *Storage) GetShortUrl(id uint32, short *string) error {
-	return s.GetShortUrlFromDB(id, short)
+func (s *Storage) GetShortUrl(id uint32, long string, short *string, ctx context.Context) error {
+	err := s.GetShortUrlFromCache(long, short, ctx)
+
+	if err != nil {
+		err = s.GetShortUrlFromDB(id, short)
+		s.log.Info(s.InsertUrlsIntoCache(long, *short, ctx))
+		return err
+	}
+
+	return nil
 }
 
-func (s *Storage) InsertShortUrl(id uint32, url string, short string) error {
-	return s.InsertShortUrlIntoDB(id, url, short)
+func (s *Storage) InsertShortUrl(id uint32, long string, short string, ctx context.Context) error {
+	err := s.InsertUrlsIntoCache(long, short, ctx)
+	if err != nil {
+		s.log.Errorf("Cache error: %s", err.Error())
+	}
+
+	return s.InsertShortUrlIntoDB(id, long, short)
 }
 
-func (s *Storage) GetLongUrl(short string, long *string) error {
-	return s.GetLongUrlFromDB(short, long)
+func (s *Storage) GetLongUrl(short string, long *string, ctx context.Context) error {
+	err := s.GetLongUrlFromCache(short, long, ctx)
+
+	if err != nil {
+		err = s.GetLongUrlFromDB(short, long)
+		s.log.Info(s.InsertUrlsIntoCache(*long, short, ctx))
+		return err
+	}
+
+	return nil
 }
 
 func (r *Storage) Close() error {
-	// r.producer.Close()
-
-	// err := r.cache.Close()
-	// if err != nil {
-	// 	return err
-	// }
+	err := r.cache.Close()
+	if err != nil {
+		return err
+	}
 
 	return r.db.Close()
 }
