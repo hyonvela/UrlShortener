@@ -24,10 +24,11 @@ type Config struct {
 		SSLMode  string `mapstructure:"ssl_mode"`
 	} `mapstructure:"database"`
 	Redis struct {
-		RedisHost string `yaml:"redis_host"`
-		RedisPort string `yaml:"redis_port"`
-		RedisDB   int    `yaml:"redis_db"`
-	} `yaml:"cache"`
+		RedisHost string `mapstructure:"redis_host"`
+		RedisPort string `mapstructure:"redis_port"`
+		RedisDB   int    `mapstructure:"redis_db"`
+		LifeTime  int    `mapstructure:"life_time"`
+	} `mapstructure:"cache"`
 }
 
 func GetConfig() *Config {

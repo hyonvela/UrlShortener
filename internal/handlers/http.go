@@ -20,7 +20,7 @@ func NewHandler(uc *usecase.Usecase, logger *logging.Logger) *Handler {
 
 func (h *Handler) ShortenUrl(c *gin.Context) {
 	var answer entity.ShortUrl
-	str, err := h.uc.ShortenUrl(c.Params.ByName("url"))
+	str, err := h.uc.ShortenUrl(c.Params.ByName("url"), c.Request.Context())
 	if err != nil {
 		h.log.Errorf("an error occurred: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -39,7 +39,7 @@ func (h *Handler) GetLongUrl(c *gin.Context) {
 	h.log.Info(req)
 
 	var answer entity.LongUrl
-	err = h.uc.GetLongUrl(req.ShortUrl, &answer.LongSUrl)
+	err = h.uc.GetLongUrl(req.ShortUrl, &answer.LongSUrl, c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
