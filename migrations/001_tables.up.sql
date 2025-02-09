@@ -1,10 +1,9 @@
-CREATE TABLE short_url (
+CREATE TABLE IF NOT EXISTS short_url (
     id bigint PRIMARY KEY,
-    short_url varchar(255)
+    short_url VARCHAR(10) UNIQUE NOT NULL
 );
 
-CREATE TABLE long_url (
+CREATE TABLE IF NOT EXISTS long_url (
     id bigint PRIMARY KEY,
-    long_url varchar(255)
+    long_url TEXT UNIQUE NOT NULL
 );
-

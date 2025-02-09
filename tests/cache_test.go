@@ -2,12 +2,12 @@ package tests
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
 	"testing"
 
 	"example.com/m/config"
 	"example.com/m/internal/storage"
+	urlshortener "example.com/m/internal/url_shortener"
+	"example.com/m/internal/usecase"
 	"example.com/m/pkg/logging"
 	"github.com/stretchr/testify/require"
 )
@@ -20,8 +20,10 @@ func TestCache(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Cache test", func(t *testing.T) {
-		longURL := fmt.Sprint(rand.Uint32())
-		shortURL := fmt.Sprint(rand.Uint32())
+		longURL := RandString()
+		id := usecase.GetID(longURL)
+		shortURL := urlshortener.Shorten(id)
+
 		var (
 			findedShort string
 			findedLong  string

@@ -2,13 +2,10 @@ package tests
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
 	"testing"
 
 	"example.com/m/config"
 	"example.com/m/internal/storage"
-	urlshortener "example.com/m/internal/url_shortener"
 	"example.com/m/internal/usecase"
 	"example.com/m/pkg/logging"
 	"github.com/stretchr/testify/require"
@@ -25,13 +22,19 @@ func TestUsecase(t *testing.T) {
 
 	t.Run("Shortener test", func(t *testing.T) {
 		for i := 0; i < 100; i++ {
-			longURL := fmt.Sprint(rand.Uint32())
-			id := usecase.GetID(longURL)
-			shortURL := urlshortener.Shorten(id)
-
-			newShort, err := uc.ShortenUrl(longURL, ctx)
+			longURL := RandString()
+			// Проверяем, что два вызова для одного URL возвращают одинаковый short
+			short1, err := uc.ShortenUrl(longURL, ctx)
 			require.NoError(t, err)
-			require.Equal(t, shortURL, newShort)
+			short2, err := uc.ShortenUrl(longURL, ctx)
+			require.NoError(t, err)
+			require.Equal(t, short1, short2)
+
+			// Проверяем, что short корректно восстанавливается в long
+			var long string
+			err = uc.GetLongUrl(short1, &long, ctx)
+			require.NoError(t, err)
+			require.Equal(t, longURL, long)
 		}
 	})
 }
