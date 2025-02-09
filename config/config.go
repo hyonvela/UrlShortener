@@ -8,13 +8,16 @@ import (
 )
 
 type Config struct {
-	Logs_format string `mapstructure:"logs_format"`
-	Listen      struct {
+	LogsFormat string `mapstructure:"logs_format"`
+	LogsLVL    string `mapstructure:"logs_lvl"`
+
+	Listen struct {
 		BindIp       string `mapstructure:"bind_ip"`
 		Port         string `mapstructure:"port"`
 		WriteTimeout int    `mapstructure:"write_timeout"`
 		ReadTimeout  int    `mapstructure:"read_timeout"`
 	} `mapstructure:"listen"`
+
 	Database struct {
 		Host     string `mapstructure:"db_host"`
 		Port     string `mapstructure:"db_port"`
@@ -23,6 +26,7 @@ type Config struct {
 		DBName   string `mapstructure:"db_name"`
 		SSLMode  string `mapstructure:"ssl_mode"`
 	} `mapstructure:"database"`
+
 	Redis struct {
 		RedisHost string `mapstructure:"redis_host"`
 		RedisPort string `mapstructure:"redis_port"`

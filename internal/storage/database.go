@@ -33,3 +33,8 @@ func (s *Storage) GetLongUrlFromDB(short string, long *string) error {
 	query := "SELECT long_url FROM long_url JOIN short_url ON long_url.id = short_url.id WHERE short_url.short_url = $1;"
 	return s.db.Get(long, query, short)
 }
+
+func (s *Storage) GetLongUrlByID(id uint32, long *string) error {
+	query := "SELECT long_url FROM long_url WHERE id = $1;"
+	return s.db.Get(long, query, id)
+}

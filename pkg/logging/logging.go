@@ -22,8 +22,8 @@ type Logger struct {
 	*logrus.Entry
 }
 
-func GetLogger(format string) *Logger {
-	setupLoger(format)
+func GetLogger(format string, lvl string) *Logger {
+	setupLoger(format, lvl)
 	return &Logger{e}
 }
 
@@ -43,7 +43,7 @@ func (hook *WriterHook) Levels() []logrus.Level {
 	return hook.LogLevels
 }
 
-func setupLoger(format string) {
+func setupLoger(format string, lvl string) {
 	l := logrus.New()
 	l.SetReportCaller(true)
 
@@ -78,11 +78,18 @@ func setupLoger(format string) {
 
 	l.SetOutput(io.Discard)
 
-	l.AddHook((&WriterHook{
-		Writer:    []io.Writer{allFile, os.Stdout},
-		LogLevels: logrus.AllLevels,
-	}))
-
+	switch lvl {
+	case "all":
+		l.AddHook((&WriterHook{
+			Writer:    []io.Writer{allFile, os.Stdout},
+			LogLevels: logrus.AllLevels,
+		}))
+	case "test":
+		l.AddHook((&WriterHook{
+			Writer:    []io.Writer{allFile, os.Stdout},
+			LogLevels: []logrus.Level{logrus.FatalLevel},
+		}))
+	}
 	l.SetLevel(logrus.TraceLevel)
 
 	e = logrus.NewEntry(l)

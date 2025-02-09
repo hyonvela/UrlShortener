@@ -22,6 +22,7 @@ func Run(ctx context.Context, cfg *config.Config, log *logging.Logger) {
 	uc := usecase.New(s, log)
 
 	log.Info("Router initialization")
+	gin.SetMode(gin.DebugMode)
 	r := SetupRouter(uc, log)
 
 	log.Info("REST initialization")
@@ -63,9 +64,6 @@ func SetupRouter(uc *usecase.Usecase, logger *logging.Logger) *gin.Engine {
 
 	// В качестве логгера выбран logrus, для него написсана обертка,
 	// чтобы использовать logrus в качестве логгера в gin
-
-	gin.SetMode(gin.DebugMode)
-
 	gin.DefaultWriter = logging.NewGinLogrusWriter(logger.Entry)
 	gin.DefaultErrorWriter = logging.NewGinLogrusWriter(logger.Entry)
 

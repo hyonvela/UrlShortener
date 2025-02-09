@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"hash/fnv"
+	"strings"
 
 	"example.com/m/internal/storage"
 	urlshortener "example.com/m/internal/url_shortener"
@@ -20,18 +21,37 @@ func New(storage *storage.Storage, logger *logging.Logger) *Usecase {
 
 func (uc *Usecase) ShortenUrl(long string, ctx context.Context) (string, error) {
 	id := GetID(long)
+	var (
+		short     string
+		longCheck string
+	)
 
-	var short string
+	// Проверяем, существует ли уже short URL для данного long URL
 	err := uc.s.GetShortUrl(id, long, &short, ctx)
+	if err == nil {
+		return short, nil
+	}
 
-	if err != nil && err.Error() == "sql: no rows in result set" {
+	// Если записи нет, ищем следующий доступный id
+	if err != nil && strings.Contains(err.Error(), "no rows in result set") {
+		for {
+			err = uc.s.GetLongUrlByID(id, &longCheck)
+			if err != nil && strings.Contains(err.Error(), "no rows in result set") {
+				// Нашли свободный id
+				break
+			} else if err != nil {
+				return "", err
+			}
+			// Если id занят, увеличиваем
+			id++
+		}
+
 		short = urlshortener.Shorten(id)
 		return short, uc.s.InsertShortUrl(id, long, short, ctx)
 	}
 
-	return short, err
+	return "", err
 }
-
 func (uc *Usecase) GetLongUrl(short string, long *string, ctx context.Context) error {
 	return uc.s.GetLongUrl(short, long, ctx)
 }
