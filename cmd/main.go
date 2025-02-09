@@ -13,7 +13,7 @@ import (
 
 func main() {
 	cfg := config.GetConfig()
-	log := logging.GetLogger(cfg.Logs_format)
+	log := logging.GetLogger(cfg.LogsFormat, cfg.LogsLVL)
 
 	ctx, cancel := context.WithCancel(context.Background())
 

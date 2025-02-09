@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewString(t *testing.T) {
+func TestUrlShortener(t *testing.T) {
 	t.Run("returns string [A-Za-z0-9_]", func(t *testing.T) {
 		type testCase struct {
 			str      string
@@ -42,6 +42,17 @@ func TestNewString(t *testing.T) {
 
 		for i := 0; i < 10000; i++ {
 			assert.Equal(t, str, urlshortener.Shorten(num))
+		}
+	})
+
+	t.Run("colision test", func(t *testing.T) {
+		seen := make(map[string]bool)
+		for i := 0; i < 10000; i++ {
+			s := urlshortener.Shorten(rand.Uint32())
+			if seen[s] {
+				t.Fatalf("Collision detected for %d: %s", i, s)
+			}
+			seen[s] = true
 		}
 	})
 }
