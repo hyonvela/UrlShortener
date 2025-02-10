@@ -7,80 +7,93 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"example.com/m/config"
-	"example.com/m/internal/app"
-	"example.com/m/internal/entity"
+	"example.com/m/internal/handlers"
 	"example.com/m/internal/storage"
-	"example.com/m/internal/usecase"
 	"example.com/m/pkg/logging"
+	"example.com/m/tests/mocks"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHTTP(t *testing.T) {
-	cfg := config.GetConfig()
-	log := logging.GetLogger(cfg.LogsFormat, cfg.LogsLVL)
-	s := storage.New(cfg, log)
-	defer s.Close()
-
-	uc := usecase.New(s, log)
+func TestHTTPHandlers(t *testing.T) {
+	mockUsecase := new(mocks.MockUsecase)
+	mockLogger := logging.GetLogger("text", "test")
+	handler := handlers.NewHandler(mockUsecase, mockLogger)
 
 	gin.SetMode(gin.TestMode)
-	r := app.SetupRouter(uc, log)
+	router := gin.New()
 
-	type testCase struct {
-		short string
-		long  string
+	v1 := router.Group("/v1")
+	{
+		v1.POST("url_shortener", handler.ShortenUrl)
+		v1.GET("url_shortener", handler.GetLongUrl)
 	}
 
-	testCases := []testCase{
-		{"2lb2PU0000", "QUmhyWlX47a7zwU"},
-		{"1JLGSP0000", "WbOvG8lS1ssWaYJyhqpi8lNdzLAPH6Z8i2FPMTqd3B0jlPwpWyHglMN1AEMijuqef2aRjfoItahzG1YPvQDt17eOsqqd7t4iWQAKoyMMhnJP1CpAEjMxoAjhwufmPisXdV77LeT08sTEb6ViU9Dmw1xMZkKUkDZe1C"},
-		{"37poLS0000", "qbk0UibRb5gxKh8LP5evBjAbqg3zoRr9An8GtD_beFPtA6aMo2leXKbr0Ne188enpvjDm1yd_mr0CSf5NAILumfAZDbP60HpG2on4NJlUxIbVk64F6R96S1D8qFVgxqYEiuvaLWVBWZezRvqPE7JkeW8f_wO762AZfg_NzfBgIpWnC0nuzpuoP5Zj8lyPXfrJnQbFJ1UvPFVnuQsBly0_aZ"},
-		{"QZItq00000", "7jgbBvpvAw14LITaDUWSYG4bas3i3a6b5ypIAt_ePxY1CHms3WUCtNJ0K5"},
-		{"1bYJtg0000", "jx1PcuBMCRAGt_vO3rpTAC7W74"},
-		{"3TICds0000", "21w0"},
-		{"3lAGY80000", "TyRNIvPFGRfCa"},
-		{"3ih_v00000", "uDpvPkxiIf1ozkE6_mHYJWmia0zpqitVdEA7S4Pt6VxKYnu4zP6vGj3zQvh4Zliv"},
-		{"48zo8_0000", "p"},
-		{"2XJW6E0000", "pGD"},
-	}
+	t.Run("ShortenUrl success", func(t *testing.T) {
+		mockUsecase.ShortURL = "abc123"
+		mockUsecase.Err = nil
 
-	t.Run("ShortenUrl test", func(t *testing.T) {
-		for _, testcase := range testCases {
-			req, _ := http.NewRequest(http.MethodGet, "http://0.0.0.0:8080/v1/url_shortener/"+testcase.long, nil)
-			resp := httptest.NewRecorder()
+		longURL := map[string]string{"long_url": "https://example.com"}
+		jsonData, _ := json.Marshal(longURL)
 
-			r.ServeHTTP(resp, req)
+		req, _ := http.NewRequest(http.MethodPost, "/v1/url_shortener", bytes.NewBuffer(jsonData))
+		resp := httptest.NewRecorder()
 
-			assert.Equal(t, http.StatusOK, resp.Code)
+		router.ServeHTTP(resp, req)
 
-			var answer entity.ShortUrl
-			json.Unmarshal(resp.Body.Bytes(), &answer)
-			assert.Equal(t, testcase.short, answer.ShortUrl)
-		}
+		assert.Equal(t, http.StatusOK, resp.Code)
 
+		var response map[string]string
+		json.Unmarshal(resp.Body.Bytes(), &response)
+		assert.Equal(t, "abc123", response["short_url"])
 	})
 
-	t.Run("GetLongUrl test", func(t *testing.T) {
-		for _, testcase := range testCases {
-			m := entity.ShortUrl{ShortUrl: testcase.short}
-			jsonData, err := json.Marshal(m)
-			if err != nil {
-				t.Fatalf("Ошибка при маршализации JSON: %v", err)
-			}
+	t.Run("ShortenUrl error", func(t *testing.T) {
+		mockUsecase.Err = storage.ErrNotFound
 
-			req, _ := http.NewRequest(http.MethodPost, "http://0.0.0.0:8080/v1/url_shortener", bytes.NewBuffer(jsonData))
-			req.Header.Set("Content-Type", "application/json")
-			resp := httptest.NewRecorder()
+		longURL := map[string]string{"long_url": "https://example.com"}
+		jsonData, _ := json.Marshal(longURL)
 
-			r.ServeHTTP(resp, req)
+		req, _ := http.NewRequest(http.MethodPost, "/v1/url_shortener", bytes.NewBuffer(jsonData))
+		resp := httptest.NewRecorder()
 
-			assert.Equal(t, http.StatusOK, resp.Code)
+		router.ServeHTTP(resp, req)
 
-			var answer entity.LongUrl
-			json.Unmarshal(resp.Body.Bytes(), &answer)
-			assert.Equal(t, testcase.long, answer.LongSUrl)
-		}
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	})
+
+	t.Run("GetLongUrl success", func(t *testing.T) {
+		mockUsecase.LongURL = "https://example.com"
+		mockUsecase.Err = nil
+
+		shortURL := map[string]string{"short_url": "abc123"}
+		jsonData, _ := json.Marshal(shortURL)
+
+		req, _ := http.NewRequest(http.MethodGet, "/v1/url_shortener", bytes.NewBuffer(jsonData))
+		req.Header.Set("Content-Type", "application/json")
+		resp := httptest.NewRecorder()
+
+		router.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+
+		var response map[string]string
+		json.Unmarshal(resp.Body.Bytes(), &response)
+		assert.Equal(t, "https://example.com", response["long_url"])
+	})
+
+	t.Run("GetLongUrl error", func(t *testing.T) {
+		mockUsecase.Err = storage.ErrNotFound
+
+		shortURL := map[string]string{"short_url": "abc123"}
+		jsonData, _ := json.Marshal(shortURL)
+
+		req, _ := http.NewRequest(http.MethodGet, "/v1/url_shortener", bytes.NewBuffer(jsonData))
+		req.Header.Set("Content-Type", "application/json")
+		resp := httptest.NewRecorder()
+
+		router.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
 	})
 }

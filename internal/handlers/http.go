@@ -6,40 +6,52 @@ import (
 	"example.com/m/internal/entity"
 	"example.com/m/internal/usecase"
 	"example.com/m/pkg/logging"
+	"example.com/m/pkg/metrics"
 	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
-	uc  *usecase.Usecase
+	uc  usecase.Usecase
 	log *logging.Logger
 }
 
-func NewHandler(uc *usecase.Usecase, logger *logging.Logger) *Handler {
+func NewHandler(uc usecase.Usecase, logger *logging.Logger) *Handler {
 	return &Handler{uc, logger}
 }
 
 func (h *Handler) ShortenUrl(c *gin.Context) {
-	var answer entity.ShortUrl
-	str, err := h.uc.ShortenUrl(c.Params.ByName("url"), c.Request.Context())
+	metrics.ShortenedLinksTotal.Inc()
+
+	req := entity.LongUrl{}
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	str, err := h.uc.ShortenUrl(req.LongUrl, c.Request.Context())
 	if err != nil {
 		h.log.Errorf("an error occurred: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
+
+	answer := entity.ShortUrl{}
 	answer.ShortUrl = str
 	c.JSONP(http.StatusOK, answer)
 }
 
 func (h *Handler) GetLongUrl(c *gin.Context) {
+	metrics.ShortenedLinksTotal.Inc()
+
 	req := entity.ShortUrl{}
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	h.log.Info(req)
 
 	var answer entity.LongUrl
-	err = h.uc.GetLongUrl(req.ShortUrl, &answer.LongSUrl, c.Request.Context())
+	answer.LongUrl, err = h.uc.GetLongUrl(req.ShortUrl, c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

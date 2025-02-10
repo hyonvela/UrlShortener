@@ -12,47 +12,52 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStorage(t *testing.T) {
+func TestDatabase(t *testing.T) {
 	cfg := config.GetConfig()
-	s := storage.New(cfg, logging.GetLogger(cfg.LogsFormat, cfg.LogsLVL))
-	defer s.Close()
-
 	ctx := context.Background()
+	storages := [2]string{"postgres", "redis"}
 
-	t.Run("Get test", func(t *testing.T) {
-		longURL := RandString()
-		id := usecase.GetID(longURL)
-		var shortURL string
-		var result string
+	for _, i := range storages {
+		cfg.StorageType = i
+		s := storage.New(cfg, logging.GetLogger(cfg.LogsFormat, cfg.LogsLVL))
 
-		err := s.GetShortUrl(id, longURL, &shortURL, ctx)
-		require.Error(t, err, "sql: no rows in result set")
+		t.Run("Get test", func(t *testing.T) {
+			longURL := RandString()
+			id := usecase.GetID(longURL)
 
-		err = s.GetLongUrl(shortURL, &result, ctx)
-		require.NoError(t, err, "sql: no rows in result set")
-		require.Equal(t, longURL, result)
-	})
+			shortURL, err := s.GetShortURL(ctx, longURL)
+			require.Error(t, err, storage.ErrNotFound)
 
-	t.Run("Insert test", func(t *testing.T) {
-		longURL := RandString()
-		id := usecase.GetID(longURL)
-		shortURL := urlshortener.Shorten(id)
+			_, err = s.GetLongURL(ctx, shortURL)
+			require.Error(t, err, storage.ErrNotFound)
 
-		var (
-			findedShort string
-			findedLong  string
-		)
+			_, err = s.GetLongURLByID(ctx, id)
+			require.Error(t, err, storage.ErrNotFound)
+		})
 
-		err := s.InsertShortUrl(id, longURL, shortURL, ctx)
-		require.NoError(t, err)
+		t.Run("Insert test", func(t *testing.T) {
+			longURL := RandString()
+			id := usecase.GetID(longURL)
+			shortURL := urlshortener.Shorten(id)
 
-		err = s.GetShortUrl(id, longURL, &findedShort, ctx)
-		require.NoError(t, err)
-		require.Equal(t, shortURL, findedShort)
+			err := s.SaveURL(ctx, id, longURL, shortURL)
+			require.NoError(t, err)
 
-		err = s.GetLongUrl(shortURL, &findedLong, ctx)
-		require.NoError(t, err)
-		require.Equal(t, longURL, findedLong)
+			findedShort, err := s.GetShortURL(ctx, longURL)
+			require.NoError(t, err)
+			require.Equal(t, shortURL, findedShort)
 
-	})
+			findedLong, err := s.GetLongURL(ctx, shortURL)
+			require.NoError(t, err)
+			require.Equal(t, longURL, findedLong)
+
+			findedLong, err = s.GetLongURLByID(ctx, id)
+			require.NoError(t, err)
+			require.Equal(t, longURL, findedLong)
+
+		})
+
+		s.Close()
+	}
+
 }

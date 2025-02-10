@@ -4,37 +4,37 @@ import (
 	"context"
 	"testing"
 
-	"example.com/m/config"
-	"example.com/m/internal/storage"
 	"example.com/m/internal/usecase"
 	"example.com/m/pkg/logging"
-	"github.com/stretchr/testify/require"
+	"example.com/m/tests/mocks"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUsecase(t *testing.T) {
-	cfg := config.GetConfig()
-	log := logging.GetLogger(cfg.LogsFormat, cfg.LogsLVL)
-	s := storage.New(cfg, log)
-	defer s.Close()
+	mockStorage := new(mocks.MockStorage)
+	mockLogger := logging.GetLogger("text", "test")
+	uc := usecase.New(mockStorage, mockLogger)
 
-	ctx := context.Background()
-	uc := usecase.New(s, log)
+	t.Run("ShortenUrl returns short URL", func(t *testing.T) {
+		longURL := "https://example.com"
+		shortURL := "abc123"
+		mockStorage.ShortURL = shortURL
+		mockStorage.Err = nil
 
-	t.Run("Shortener test", func(t *testing.T) {
-		for i := 0; i < 100; i++ {
-			longURL := RandString()
-			// Проверяем, что два вызова для одного URL возвращают одинаковый short
-			short1, err := uc.ShortenUrl(longURL, ctx)
-			require.NoError(t, err)
-			short2, err := uc.ShortenUrl(longURL, ctx)
-			require.NoError(t, err)
-			require.Equal(t, short1, short2)
-
-			// Проверяем, что short корректно восстанавливается в long
-			var long string
-			err = uc.GetLongUrl(short1, &long, ctx)
-			require.NoError(t, err)
-			require.Equal(t, longURL, long)
-		}
+		result, err := uc.ShortenUrl(longURL, context.Background())
+		assert.NoError(t, err)
+		assert.Equal(t, shortURL, result)
 	})
+
+	t.Run("GetLongUrl returns long URL", func(t *testing.T) {
+		longURL := "https://example.com"
+		shortURL := "abc123"
+		mockStorage.LongURL = longURL
+		mockStorage.Err = nil
+
+		result, err := uc.GetLongUrl(shortURL, context.Background())
+		assert.NoError(t, err)
+		assert.Equal(t, longURL, result)
+	})
+
 }

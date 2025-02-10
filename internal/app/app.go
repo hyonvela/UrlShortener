@@ -12,6 +12,7 @@ import (
 	"example.com/m/middlewares"
 	"example.com/m/pkg/logging"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func Run(ctx context.Context, cfg *config.Config, log *logging.Logger) {
@@ -59,7 +60,7 @@ func Run(ctx context.Context, cfg *config.Config, log *logging.Logger) {
 	log.Println("Server exiting")
 }
 
-func SetupRouter(uc *usecase.Usecase, logger *logging.Logger) *gin.Engine {
+func SetupRouter(uc usecase.Usecase, logger *logging.Logger) *gin.Engine {
 	// Настройка роутера gin
 
 	// В качестве логгера выбран logrus, для него написсана обертка,
@@ -71,6 +72,7 @@ func SetupRouter(uc *usecase.Usecase, logger *logging.Logger) *gin.Engine {
 	// Создание логера, подключение хэндлеров и мидлварей
 
 	router.Use(middlewares.LoggingMiddleware(logger))
+	router.Use(middlewares.MetricsMiddleware())
 	router.Use(gin.CustomRecoveryWithWriter(gin.DefaultErrorWriter, func(c *gin.Context, err interface{}) {
 		c.AbortWithStatusJSON(500, gin.H{"error": "Internal Server Error"})
 	}))
@@ -79,8 +81,9 @@ func SetupRouter(uc *usecase.Usecase, logger *logging.Logger) *gin.Engine {
 
 	v1 := router.Group("/v1")
 	{
-		v1.POST("url_shortener", s.GetLongUrl)
-		v1.GET("url_shortener/:url", s.ShortenUrl)
+		v1.POST("url_shortener", s.ShortenUrl)
+		v1.GET("url_shortener", s.GetLongUrl)
+		v1.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	}
 
 	return router
