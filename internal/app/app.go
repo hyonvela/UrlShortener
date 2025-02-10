@@ -14,6 +14,7 @@ import (
 	"example.com/m/middlewares"
 	"example.com/m/pkg/logging"
 	"github.com/gin-gonic/gin"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 )
@@ -46,7 +47,14 @@ func Run(ctx context.Context, cfg *config.Config, log *logging.Logger) {
 	}()
 
 	log.Info("GRPC initialization")
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(
+			grpc_middleware.ChainUnaryServer(
+				middlewares.GRPCLoggingMiddleware(log),
+				middlewares.GRPCMetricsMiddleware(),
+			),
+		),
+	)
 	grpcHandler := handlers.NewGRPCHandler(uc, log)
 	grpcV1.RegisterUrlShortenerServiceServer(grpcServer, grpcHandler)
 
@@ -95,8 +103,8 @@ func SetupRouter(uc usecase.Usecase, logger *logging.Logger) *gin.Engine {
 	router := gin.New()
 	// Создание логера, подключение хэндлеров и мидлварей
 
-	router.Use(middlewares.LoggingMiddleware(logger))
-	router.Use(middlewares.MetricsMiddleware())
+	router.Use(middlewares.HTTPLoggingMiddleware(logger))
+	router.Use(middlewares.HTTPMetricsMiddleware())
 	router.Use(gin.CustomRecoveryWithWriter(gin.DefaultErrorWriter, func(c *gin.Context, err interface{}) {
 		c.AbortWithStatusJSON(500, gin.H{"error": "Internal Server Error"})
 	}))
