@@ -1,39 +1,15 @@
 # URL Shortener Service
 
-Сервис для сокращения URL-адресов с поддержкой HTTP и gRPC API, использующий PostgreSQL для постоянного хранения и Redis для кэширования.
+Сервис для сокращения URL-адресов с поддержкой HTTP и gRPC API, использующий PostgreSQL для постоянного хранения или Redis в качестве in-memory решения.
 
 ## Особенности
 - Поддержка HTTP и gRPC API
-- Хранение данных в PostgreSQL
-- Кэширование с использованием Redis
+- Хранение данных в PostgreSQL или Redis на выбор
 - Метрики Prometheus
-- Логирование
-- Миграции баз данных
+- Логирование logrus
 - Конфигурация через YAML файл
 
 ## API Documentation
-
-### HTTP API
-
-#### Сокращение URL
-```http
-POST /v1/url_shortener
-Content-Type: application/json
-
-{
-  "long_url": "https://example.com"
-}
-```
-**Response:**
-```json
-{
-  "short_url": "abc123"
-}
-```
-
-#### Получение оригинального URL
-## APIs
-
 ### HTTP API
 
 - **POST /v1/url_shortener**

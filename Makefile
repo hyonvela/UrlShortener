@@ -16,6 +16,3 @@ test:
 
 migrate:
 	docker-compose up migrations
-
-logs:
-	docker-compose logs -f app
