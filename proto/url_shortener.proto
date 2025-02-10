@@ -1,24 +1,19 @@
+// proto/url_shortener.proto
 syntax = "proto3";
 
-package urlshortener;
+package grpc;
 
-service UrlShortener {
-    rpc ShortenUrl(LongUrlRequest) returns (ShortUrlResponse);
-    rpc GetLongUrl(ShortUrlRequest) returns (LongUrlResponse);
+option go_package = "grpc.v1;grpcV1";
+
+service UrlShortenerService {
+  rpc ShortenUrl(UrlRequest) returns (UrlResponse);
+  rpc GetLongUrl(UrlRequest) returns (UrlResponse);
 }
 
-message LongUrlRequest {
-    string long_url = 1;
+message UrlRequest {
+  string url = 1;
 }
 
-message ShortUrlResponse {
-    string short_url = 1;
-}
-
-message ShortUrlRequest {
-    string short_url = 1;
-}
-
-message LongUrlResponse {
-    string long_url = 1;
+message UrlResponse {
+  string url = 1;
 }

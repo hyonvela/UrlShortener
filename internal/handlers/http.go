@@ -15,7 +15,7 @@ type Handler struct {
 	log *logging.Logger
 }
 
-func NewHandler(uc usecase.Usecase, logger *logging.Logger) *Handler {
+func NewHTTPHandler(uc usecase.Usecase, logger *logging.Logger) *Handler {
 	return &Handler{uc, logger}
 }
 

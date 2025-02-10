@@ -28,11 +28,13 @@ func Run(ctx context.Context, cfg *config.Config, log *logging.Logger) {
 
 	log.Info("REST initialization")
 	server := &http.Server{
-		Addr:         cfg.GetAdress(),
+		Addr:         cfg.GetHTTPAdress(),
 		Handler:      r.Handler(),
 		ReadTimeout:  time.Duration(cfg.Listen.ReadTimeout) * time.Second,
 		WriteTimeout: time.Duration(cfg.Listen.WriteTimeout) * time.Second,
 	}
+
+	log.Info("GRPC initialization")
 
 	// Запуск http сервиса
 	go func() {
@@ -77,7 +79,7 @@ func SetupRouter(uc usecase.Usecase, logger *logging.Logger) *gin.Engine {
 		c.AbortWithStatusJSON(500, gin.H{"error": "Internal Server Error"})
 	}))
 
-	s := handlers.NewHandler(uc, logger)
+	s := handlers.NewHTTPHandler(uc, logger)
 
 	v1 := router.Group("/v1")
 	{
