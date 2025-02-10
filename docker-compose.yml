@@ -1,4 +1,21 @@
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+    environment:
+      - CONFIG_PATH=./config/config.yaml
+
   db:
     image: postgres:latest
     container_name: db_container
@@ -29,7 +46,6 @@ services:
     container_name: redis
     ports:
       - 6379:6379
-
 
 volumes:
   db_data:

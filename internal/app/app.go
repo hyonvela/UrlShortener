@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"example.com/m/config"
-	grpcV1 "example.com/m/internal/grpc.v1"
 	"example.com/m/internal/handlers"
+	"example.com/m/internal/middlewares"
 	"example.com/m/internal/storage"
 	"example.com/m/internal/usecase"
-	"example.com/m/middlewares"
+	grpcV1 "example.com/m/pkg/grpc.v1"
 	"example.com/m/pkg/logging"
 	"github.com/gin-gonic/gin"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
