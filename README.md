@@ -40,6 +40,10 @@
     }
     ```
 
+- **GET /v1/metrics**
+    - Метрики Prometheus
+
+
 ### gRPC API
 
 - **ShortenUrl**
