@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	grpcV1 "example.com/m/internal/grpc.v1"
+	grpcV1 "example.com/m/pkg/grpc.v1"
 	"google.golang.org/grpc"
 )
 

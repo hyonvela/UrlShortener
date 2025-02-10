@@ -3,8 +3,8 @@ package handlers
 import (
 	"context"
 
-	grpcV1 "example.com/m/internal/grpc.v1"
 	"example.com/m/internal/usecase"
+	grpcV1 "example.com/m/pkg/grpc.v1"
 	"example.com/m/pkg/logging"
 )
 

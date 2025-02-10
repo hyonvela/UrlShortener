@@ -1,11 +1,21 @@
-all: 
-	containers
-	sleep 5
-	test
-	run
+.PHONY: all build up test migrate
 
-containers:
-	docker-compose up --build -d
+all: build up
 
-test: 
-	go test ./tests
+build:
+	docker-compose build
+
+up:
+	docker-compose up -d
+
+down:
+	docker-compose down
+
+test:
+	go test -v ./tests/...
+
+migrate:
+	docker-compose up migrations
+
+logs:
+	docker-compose logs -f app

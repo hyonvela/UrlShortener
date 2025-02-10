@@ -5,9 +5,9 @@ import (
 	"net"
 	"testing"
 
-	grpcV1 "example.com/m/internal/grpc.v1"
 	"example.com/m/internal/handlers"
 	"example.com/m/internal/storage"
+	grpcV1 "example.com/m/pkg/grpc.v1"
 	"example.com/m/pkg/logging"
 	"example.com/m/tests/mocks"
 	"github.com/stretchr/testify/assert"
