@@ -48,7 +48,13 @@ func TestHTTP(t *testing.T) {
 
 	t.Run("ShortenUrl test", func(t *testing.T) {
 		for _, testcase := range testCases {
-			req, _ := http.NewRequest(http.MethodGet, "http://0.0.0.0:8080/v1/url_shortener/"+testcase.long, nil)
+			m := entity.LongUrl{LongUrl: testcase.long}
+			jsonData, err := json.Marshal(m)
+			if err != nil {
+				t.Fatalf("Ошибка при маршализации JSON: %v", err)
+			}
+
+			req, _ := http.NewRequest(http.MethodPost, "http://0.0.0.0:8080/v1/url_shortener", bytes.NewBuffer(jsonData))
 			resp := httptest.NewRecorder()
 
 			r.ServeHTTP(resp, req)
@@ -70,7 +76,7 @@ func TestHTTP(t *testing.T) {
 				t.Fatalf("Ошибка при маршализации JSON: %v", err)
 			}
 
-			req, _ := http.NewRequest(http.MethodPost, "http://0.0.0.0:8080/v1/url_shortener", bytes.NewBuffer(jsonData))
+			req, _ := http.NewRequest(http.MethodGet, "http://0.0.0.0:8080/v1/url_shortener", bytes.NewBuffer(jsonData))
 			req.Header.Set("Content-Type", "application/json")
 			resp := httptest.NewRecorder()
 
@@ -80,7 +86,7 @@ func TestHTTP(t *testing.T) {
 
 			var answer entity.LongUrl
 			json.Unmarshal(resp.Body.Bytes(), &answer)
-			assert.Equal(t, testcase.long, answer.LongSUrl)
+			assert.Equal(t, testcase.long, answer.LongUrl)
 		}
 	})
 }

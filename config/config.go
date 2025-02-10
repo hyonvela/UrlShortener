@@ -8,10 +8,10 @@ import (
 )
 
 type Config struct {
-	LogsFormat string `mapstructure:"logs_format"`
-	LogsLVL    string `mapstructure:"logs_lvl"`
-
-	Listen struct {
+	LogsFormat  string `mapstructure:"logs_format"`
+	LogsLVL     string `mapstructure:"logs_lvl"`
+	StorageType string `mapstructure:"storage"`
+	Listen      struct {
 		BindIp       string `mapstructure:"bind_ip"`
 		Port         string `mapstructure:"port"`
 		WriteTimeout int    `mapstructure:"write_timeout"`

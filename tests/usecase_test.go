@@ -32,7 +32,7 @@ func TestUsecase(t *testing.T) {
 
 			// Проверяем, что short корректно восстанавливается в long
 			var long string
-			err = uc.GetLongUrl(short1, &long, ctx)
+			long, err = uc.GetLongUrl(short1, ctx)
 			require.NoError(t, err)
 			require.Equal(t, longURL, long)
 		}

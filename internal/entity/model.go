@@ -5,5 +5,5 @@ type ShortUrl struct {
 }
 
 type LongUrl struct {
-	LongSUrl string `json:"long_url" db:"long_url"`
+	LongUrl string `json:"long_url" db:"long_url"`
 }

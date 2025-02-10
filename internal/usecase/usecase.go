@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"hash/fnv"
-	"strings"
 
 	"example.com/m/internal/storage"
 	urlshortener "example.com/m/internal/url_shortener"
@@ -11,32 +10,32 @@ import (
 )
 
 type Usecase struct {
-	s   *storage.Storage
+	s   storage.Storage
 	log *logging.Logger
 }
 
-func New(storage *storage.Storage, logger *logging.Logger) *Usecase {
+func New(storage storage.Storage, logger *logging.Logger) *Usecase {
 	return &Usecase{storage, logger}
 }
 
 func (uc *Usecase) ShortenUrl(long string, ctx context.Context) (string, error) {
 	id := GetID(long)
-	var (
-		short     string
-		longCheck string
-	)
 
-	// Проверяем, существует ли уже short URL для данного long URL
-	err := uc.s.GetShortUrl(id, long, &short, ctx)
+	// Так как коллизий избежать не получится из-за того что мощность
+	// множества всех строк больше мощьности множества строк которые производит алгоритм сокращения,
+	// необходимо предусмотреть обход коллизий
+
+	// Проверяем, существует ли уже короткий url
+	short, err := uc.s.GetShortURL(ctx, long)
 	if err == nil {
-		return short, nil
+		return short, err
 	}
 
 	// Если записи нет, ищем следующий доступный id
-	if err != nil && strings.Contains(err.Error(), "no rows in result set") {
+	if err == storage.ErrNotFound {
 		for {
-			err = uc.s.GetLongUrlByID(id, &longCheck)
-			if err != nil && strings.Contains(err.Error(), "no rows in result set") {
+			_, err := uc.s.GetLongURLByID(ctx, id)
+			if err == storage.ErrNotFound {
 				// Нашли свободный id
 				break
 			} else if err != nil {
@@ -47,13 +46,14 @@ func (uc *Usecase) ShortenUrl(long string, ctx context.Context) (string, error) 
 		}
 
 		short = urlshortener.Shorten(id)
-		return short, uc.s.InsertShortUrl(id, long, short, ctx)
+		return short, uc.s.SaveURL(ctx, id, long, short)
 	}
 
 	return "", err
 }
-func (uc *Usecase) GetLongUrl(short string, long *string, ctx context.Context) error {
-	return uc.s.GetLongUrl(short, long, ctx)
+
+func (uc *Usecase) GetLongUrl(short string, ctx context.Context) (string, error) {
+	return uc.s.GetLongURL(ctx, short)
 }
 
 func GetID(url string) uint32 {

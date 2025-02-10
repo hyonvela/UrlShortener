@@ -79,8 +79,8 @@ func SetupRouter(uc *usecase.Usecase, logger *logging.Logger) *gin.Engine {
 
 	v1 := router.Group("/v1")
 	{
-		v1.POST("url_shortener", s.GetLongUrl)
-		v1.GET("url_shortener/:url", s.ShortenUrl)
+		v1.POST("url_shortener", s.ShortenUrl)
+		v1.GET("url_shortener", s.GetLongUrl)
 	}
 
 	return router
