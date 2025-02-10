@@ -6,6 +6,7 @@ import (
 	"example.com/m/internal/entity"
 	"example.com/m/internal/usecase"
 	"example.com/m/pkg/logging"
+	"example.com/m/pkg/metrics"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,6 +20,8 @@ func NewHandler(uc usecase.Usecase, logger *logging.Logger) *Handler {
 }
 
 func (h *Handler) ShortenUrl(c *gin.Context) {
+	metrics.ShortenedLinksTotal.Inc()
+
 	req := entity.LongUrl{}
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
@@ -38,6 +41,8 @@ func (h *Handler) ShortenUrl(c *gin.Context) {
 }
 
 func (h *Handler) GetLongUrl(c *gin.Context) {
+	metrics.ShortenedLinksTotal.Inc()
+
 	req := entity.ShortUrl{}
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
