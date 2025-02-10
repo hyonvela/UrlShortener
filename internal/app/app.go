@@ -2,10 +2,12 @@ package app
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"time"
 
 	"example.com/m/config"
+	grpcV1 "example.com/m/internal/grpc.v1"
 	"example.com/m/internal/handlers"
 	"example.com/m/internal/storage"
 	"example.com/m/internal/usecase"
@@ -13,6 +15,7 @@ import (
 	"example.com/m/pkg/logging"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"google.golang.org/grpc"
 )
 
 func Run(ctx context.Context, cfg *config.Config, log *logging.Logger) {
@@ -34,26 +37,45 @@ func Run(ctx context.Context, cfg *config.Config, log *logging.Logger) {
 		WriteTimeout: time.Duration(cfg.Listen.WriteTimeout) * time.Second,
 	}
 
-	log.Info("GRPC initialization")
-
 	// Запуск http сервиса
 	go func() {
+		log.Infof("HTTP server listening on %s", cfg.Listen.HTTPPort)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
 		}
 	}()
 
+	log.Info("GRPC initialization")
+	grpcServer := grpc.NewServer()
+	grpcHandler := handlers.NewGRPCHandler(uc, log)
+	grpcV1.RegisterUrlShortenerServiceServer(grpcServer, grpcHandler)
+
+	grpcListener, err := net.Listen("tcp", cfg.Listen.BindIp+":"+cfg.Listen.GRPCPort)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	// Запуск grpc сервиса
+	go func() {
+		log.Infof("GRPC server listening on %s", cfg.Listen.GRPCPort)
+		if err := grpcServer.Serve(grpcListener); err != nil {
+			log.Fatalf("failed to serve grpc: %v", err)
+		}
+	}()
+
 	<-ctx.Done()
 	// Поступил сигнал ^C
-	// Запуск логики graceful shutdown
+	// Запуск логику graceful shutdown
 
-	log.Println("Shutdown Server ...")
+	log.Println("Shutdown Servers ...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
 		log.Fatal("Server Shutdown:", err)
 	}
+
+	grpcServer.GracefulStop()
 
 	select {
 	case <-ctx.Done():
