@@ -10,11 +10,11 @@ import (
 )
 
 type Handler struct {
-	uc  *usecase.Usecase
+	uc  usecase.Usecase
 	log *logging.Logger
 }
 
-func NewHandler(uc *usecase.Usecase, logger *logging.Logger) *Handler {
+func NewHandler(uc usecase.Usecase, logger *logging.Logger) *Handler {
 	return &Handler{uc, logger}
 }
 

@@ -59,7 +59,7 @@ func Run(ctx context.Context, cfg *config.Config, log *logging.Logger) {
 	log.Println("Server exiting")
 }
 
-func SetupRouter(uc *usecase.Usecase, logger *logging.Logger) *gin.Engine {
+func SetupRouter(uc usecase.Usecase, logger *logging.Logger) *gin.Engine {
 	// Настройка роутера gin
 
 	// В качестве логгера выбран logrus, для него написсана обертка,

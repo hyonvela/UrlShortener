@@ -9,16 +9,21 @@ import (
 	"example.com/m/pkg/logging"
 )
 
-type Usecase struct {
+type Usecase interface {
+	ShortenUrl(long string, ctx context.Context) (string, error)
+	GetLongUrl(short string, ctx context.Context) (string, error)
+}
+
+type usecase struct {
 	s   storage.Storage
 	log *logging.Logger
 }
 
-func New(storage storage.Storage, logger *logging.Logger) *Usecase {
-	return &Usecase{storage, logger}
+func New(storage storage.Storage, logger *logging.Logger) usecase {
+	return usecase{storage, logger}
 }
 
-func (uc *Usecase) ShortenUrl(long string, ctx context.Context) (string, error) {
+func (uc usecase) ShortenUrl(long string, ctx context.Context) (string, error) {
 	id := GetID(long)
 
 	// Так как коллизий избежать не получится из-за того что мощность
@@ -52,7 +57,7 @@ func (uc *Usecase) ShortenUrl(long string, ctx context.Context) (string, error) 
 	return "", err
 }
 
-func (uc *Usecase) GetLongUrl(short string, ctx context.Context) (string, error) {
+func (uc usecase) GetLongUrl(short string, ctx context.Context) (string, error) {
 	return uc.s.GetLongURL(ctx, short)
 }
 
