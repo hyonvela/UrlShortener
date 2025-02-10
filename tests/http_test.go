@@ -18,7 +18,7 @@ import (
 func TestHTTPHandlers(t *testing.T) {
 	mockUsecase := new(mocks.MockUsecase)
 	mockLogger := logging.GetLogger("text", "test")
-	handler := handlers.NewHandler(mockUsecase, mockLogger)
+	handler := handlers.NewHTTPHandler(mockUsecase, mockLogger)
 
 	gin.SetMode(gin.TestMode)
 	router := gin.New()

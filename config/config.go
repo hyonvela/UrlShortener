@@ -13,7 +13,8 @@ type Config struct {
 	StorageType string `mapstructure:"storage"`
 	Listen      struct {
 		BindIp       string `mapstructure:"bind_ip"`
-		Port         string `mapstructure:"port"`
+		HTTPPort     string `mapstructure:"http_port"`
+		GRPCPort     string `mapstructure:"grpc_port"`
 		WriteTimeout int    `mapstructure:"write_timeout"`
 		ReadTimeout  int    `mapstructure:"read_timeout"`
 	} `mapstructure:"listen"`
@@ -68,10 +69,10 @@ func (cfg *Config) GetDSN() string {
 	)
 }
 
-func (cfg *Config) GetAdress() string {
+func (cfg *Config) GetHTTPAdress() string {
 	return fmt.Sprintf(
 		"%s:%s",
 		cfg.Listen.BindIp,
-		cfg.Listen.Port,
+		cfg.Listen.HTTPPort,
 	)
 }

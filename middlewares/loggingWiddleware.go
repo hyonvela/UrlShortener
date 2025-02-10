@@ -2,14 +2,18 @@
 package middlewares
 
 import (
+	"context"
 	"time"
 
 	"example.com/m/pkg/logging"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
-func LoggingMiddleware(logger *logging.Logger) gin.HandlerFunc {
+func HTTPLoggingMiddleware(logger *logging.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		path := c.Request.URL.Path
@@ -50,4 +54,43 @@ func LoggingMiddleware(logger *logging.Logger) gin.HandlerFunc {
 			entry.Info()
 		}
 	}
+}
+
+func GRPCLoggingMiddleware(logger *logging.Logger) grpc.UnaryServerInterceptor {
+	return func(
+		ctx context.Context,
+		req interface{},
+		info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler,
+	) (resp interface{}, err error) {
+		start := time.Now()
+
+		resp, err = handler(ctx, req)
+
+		clientIP := getClientIP(ctx)
+
+		statusCode := status.Code(err)
+
+		logger.WithFields(logrus.Fields{
+			"method":     info.FullMethod,
+			"took":       time.Since(start),
+			"clientIP":   clientIP,
+			"statusCode": statusCode,
+		}).Info("Handled request")
+
+		if err != nil {
+			logger.WithField("error", err.Error()).Error("Request failed")
+		}
+
+		return resp, err
+	}
+}
+
+func getClientIP(ctx context.Context) string {
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		if ip := md["client-ip"]; len(ip) > 0 {
+			return ip[0]
+		}
+	}
+	return ""
 }
